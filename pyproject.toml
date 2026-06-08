@@ -50,6 +50,7 @@ classifiers = [
 dependencies = [
     "aiohttp>=3.9.0b0",
     "click",
+    "curl-cffi",
     "frozndict",
     "inscriptis",
     "lxml",

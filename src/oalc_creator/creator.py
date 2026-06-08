@@ -22,12 +22,13 @@ from .data import encoder, Entries, Request, entries_decoder, document_decoder, 
 from .helpers import log, console, warning, load_json, save_json, load_jsonl, save_jsonl
 from .scraper import Scraper
 from .metadata import DATA_VERSIONS
-from .scrapers import (NswCaselaw, NswLegislation, HighCourtOfAustralia, TasmanianLegislation, QueenslandLegislation,
+from .scrapers import (Austlii, NswCaselaw, NswLegislation, HighCourtOfAustralia, TasmanianLegislation, QueenslandLegislation,
                        FederalCourtOfAustralia, SouthAustralianLegislation, FederalRegisterOfLegislation,
                        WesternAustralianLegislation)
 
 # Initialise a map of the names of sources to their scrapers.
 SOURCES: dict[str, Scraper] = {
+    'fcfcoa' : Austlii,
     'federal_court_of_australia' : FederalCourtOfAustralia,
     'federal_register_of_legislation' : FederalRegisterOfLegislation,
     'high_court_of_australia' : HighCourtOfAustralia,

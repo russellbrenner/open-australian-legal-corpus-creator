@@ -1,3 +1,4 @@
+from .austlii import Austlii
 from .nsw_caselaw import NswCaselaw
 from .nsw_legislation import NswLegislation
 from .tasmanian_legislation import TasmanianLegislation
