@@ -72,6 +72,11 @@ dependencies = [
     "tqdm",
 ]
 
+[project.optional-dependencies]
+dev = [
+    "pytest",
+]
+
 [project.urls]
 Homepage = "https://github.com/isaacus-dev/open-australian-legal-corpus-creator"
 Documentation = "https://github.com/isaacus-dev/open-australian-legal-corpus-creator/blob/main/README.md"

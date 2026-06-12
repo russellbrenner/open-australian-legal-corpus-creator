@@ -22,20 +22,23 @@ from .data import encoder, Entries, Request, entries_decoder, document_decoder, 
 from .helpers import log, console, warning, load_json, save_json, load_jsonl, save_jsonl
 from .scraper import Scraper
 from .metadata import DATA_VERSIONS
-from .scrapers import (Austlii, NswCaselaw, NswLegislation, HighCourtOfAustralia, TasmanianLegislation, QueenslandLegislation,
-                       FederalCourtOfAustralia, SouthAustralianLegislation, FederalRegisterOfLegislation,
-                       WesternAustralianLegislation)
+from .scrapers import (Austlii, ActLegislation, NswCaselaw, NswLegislation, HighCourtOfAustralia, TasmanianLegislation,
+                       VictorianLegislation, QueenslandLegislation, FederalCourtOfAustralia, SouthAustralianLegislation,
+                       FederalRegisterOfLegislation, WesternAustralianLegislation, NorthernTerritoryLegislation)
 
 # Initialise a map of the names of sources to their scrapers.
 SOURCES: dict[str, Scraper] = {
+    'act_legislation' : ActLegislation,
     'fcfcoa' : Austlii,
     'federal_court_of_australia' : FederalCourtOfAustralia,
     'federal_register_of_legislation' : FederalRegisterOfLegislation,
     'high_court_of_australia' : HighCourtOfAustralia,
+    'northern_territory_legislation' : NorthernTerritoryLegislation,
     'nsw_caselaw' : NswCaselaw,
     'nsw_legislation' : NswLegislation,
     'queensland_legislation' : QueenslandLegislation,
     'south_australian_legislation' : SouthAustralianLegislation,
+    'victorian_legislation' : VictorianLegislation,
     'western_australian_legislation' : WesternAustralianLegislation,
     'tasmanian_legislation' : TasmanianLegislation,
 }

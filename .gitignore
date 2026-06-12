@@ -8,6 +8,8 @@
 !pyproject.toml
 !src/
 !src/**/*
+!tests/
+!tests/**/*
 !.isort.cfg
 
 # Finally, exclude anything in the above inclusions that we don't want.
