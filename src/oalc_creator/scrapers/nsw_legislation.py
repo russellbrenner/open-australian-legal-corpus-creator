@@ -107,7 +107,8 @@ class NswLegislation(Scraper):
             match resp.type:
                 case 'text/html':
                     # Extract the point in time of the latest version of the document.
-                    pit = re.search(r'<a\s+href="/search\?pointInTime=(\d{4}-\d{2}-\d{2})&', resp.text).group(1)
+                    _m = re.search(r'pointInTime=(\d{4}-\d{2}-\d{2})', resp.text) or re.search(r'inforce/(\d{4}-\d{2}-\d{2})', resp.text)
+                    pit = _m.group(1) if _m else datetime.now(tz=pytz.timezone("Australia/NSW")).strftime(r"%Y-%m-%d")
                     date = pit
                 
                 # If a PDF version of the document is returned, then we must use the current point in time.

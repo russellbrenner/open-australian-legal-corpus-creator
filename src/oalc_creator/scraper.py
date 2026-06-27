@@ -10,6 +10,13 @@ from concurrent.futures import ThreadPoolExecutor
 import aiohttp
 import aiohttp.client_exceptions
 
+try:
+    from curl_cffi.requests import AsyncSession as _CurlAsyncSession
+    from curl_cffi import CurlError as _CurlError
+except Exception:  # curl_cffi optional
+    _CurlAsyncSession = None
+    _CurlError = Exception
+
 from .data import Entry, Request, Document, Response
 from .helpers import log
 
@@ -89,6 +96,12 @@ class Scraper(ABC):
         
         self.ocr_batch_size: int = self.thread_pool_executor._max_workers
         """The number of pages that may be OCR'd concurrently."""
+
+        self.impersonate: str | None = 'chrome' if source in {'nsw_legislation', 'south_australian_legislation', 'victorian_legislation', 'act_legislation'} else None
+        """If set (e.g. 'chrome'), route requests through curl_cffi TLS impersonation to bypass Cloudflare."""
+
+        self.request_timeout: int = 90
+        """Per-request timeout (seconds) to prevent indefinite hangs."""
             
     @abstractmethod
     async def get_index_reqs(self) -> set[Request]:
@@ -169,9 +182,15 @@ class Scraper(ABC):
             try:
                 # If `self.session` exists and has not been closed, use it. Otherwise, create a new session.
                 # NOTE We do not use `self.session` in a with statement but instead use a nullcontext (which acts as a flag for us to overwrite our session with `self.session`) in order to avoid closing `self.session` when it is not ours to close. The responsibility of closing `self.session` is on whoever passed it to the scraper.
+                if self.impersonate and _CurlAsyncSession is not None:
+                    async with self.semaphore:
+                        async with _CurlAsyncSession() as _cs:
+                            _r = await _cs.request(req.method.upper(), req.path, data=(dict(req.data) or None), headers=(dict(req.headers) or None), impersonate=self.impersonate, timeout=self.request_timeout)
+                    _ct = (_r.headers.get('content-type') or '').split(';')[0].strip()
+                    return Response(_r.content, encoding=req.encoding, type=_ct, status=_r.status_code)
                 async with self.semaphore, (nullcontext() if self.session and not self.session.closed else aiohttp.ClientSession()) as session:
                     session = session or self.session # NOTE `session` will be `None` if our context manager is a nullcontext.
-                    async with session.request(**req.args) as response:
+                    async with session.request(**req.args, timeout=aiohttp.ClientTimeout(total=self.request_timeout)) as response:
                         # Raise a custom `aiohttp.client_exceptions.ClientResponseError` exception if the response status code is in `self.retry_statuses`.
                         if response.status in self.retry_statuses:
                             raise aiohttp.client_exceptions.ClientResponseError(
@@ -189,7 +208,7 @@ class Scraper(ABC):
                             status=response.status,
                         )
             
-            except self.retry_exceptions as e:
+            except (*self.retry_exceptions, _CurlError) as e:
                 if elapsed > self.stop_after_waiting:
                     raise e
                 
