@@ -15,10 +15,14 @@ from striprtf.striprtf import rtf_to_text
 from ..data import Entry, Request, Document, make_doc, Response
 from ..helpers import log
 from ..scraper import Scraper
+from ..cffi_session import CffiImpersonateMixin
 
 
-class SouthAustralianLegislation(Scraper):
+class SouthAustralianLegislation(CffiImpersonateMixin, Scraper):
     """A scraper for the South Australian Legislation database."""
+
+    # The register returns 429 under sustained impersonated load; space requests.
+    CRAWL_DELAY = 1.0
     
     def __init__(self,
                  indices_refresh_interval: bool | timedelta = None,

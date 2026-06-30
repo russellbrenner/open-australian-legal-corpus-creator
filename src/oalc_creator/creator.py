@@ -24,7 +24,9 @@ from .scraper import Scraper
 from .metadata import DATA_VERSIONS
 from .scrapers import (Austlii, ActLegislation, NswCaselaw, NswLegislation, HighCourtOfAustralia, TasmanianLegislation,
                        VictorianLegislation, QueenslandLegislation, FederalCourtOfAustralia, SouthAustralianLegislation,
-                       FederalRegisterOfLegislation, WesternAustralianLegislation, NorthernTerritoryLegislation)
+                       FederalRegisterOfLegislation, WesternAustralianLegislation, NorthernTerritoryLegislation,
+                       VictorianCourts, QueenslandCourts, SouthAustralianCourts, WesternAustralianCourts,
+                       TasmanianCourts, NorthernTerritoryCourts, AustralianCapitalTerritoryCourts)
 
 # Initialise a map of the names of sources to their scrapers.
 SOURCES: dict[str, Scraper] = {
@@ -41,6 +43,13 @@ SOURCES: dict[str, Scraper] = {
     'victorian_legislation' : VictorianLegislation,
     'western_australian_legislation' : WesternAustralianLegislation,
     'tasmanian_legislation' : TasmanianLegislation,
+    'victorian_courts' : VictorianCourts,
+    'queensland_courts' : QueenslandCourts,
+    'south_australian_courts' : SouthAustralianCourts,
+    'western_australian_courts' : WesternAustralianCourts,
+    'tasmanian_courts' : TasmanianCourts,
+    'northern_territory_courts' : NorthernTerritoryCourts,
+    'australian_capital_territory_courts' : AustralianCapitalTerritoryCourts,
 }
 
 class Creator:

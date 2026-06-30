@@ -16,11 +16,15 @@ from ..ocr import pdf2txt
 from ..data import Entry, Request, Document, make_doc, Response
 from ..helpers import log, warning
 from ..scraper import Scraper
+from ..cffi_session import CffiImpersonateMixin
 from ..custom_inscriptis import CustomInscriptis, CustomParserConfig
 
 
-class NswLegislation(Scraper):
+class NswLegislation(CffiImpersonateMixin, Scraper):
     """A scraper for the NSW Legislation database."""
+
+    # The register returns 429 under sustained impersonated load; space requests.
+    CRAWL_DELAY = 1.0
     
     def __init__(self,
                  indices_refresh_interval: bool | timedelta = None,
