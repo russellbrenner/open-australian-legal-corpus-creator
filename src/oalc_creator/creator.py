@@ -26,7 +26,11 @@ from .scrapers import (Austlii, ActLegislation, NswCaselaw, NswLegislation, High
                        VictorianLegislation, QueenslandLegislation, FederalCourtOfAustralia, SouthAustralianLegislation,
                        FederalRegisterOfLegislation, WesternAustralianLegislation, NorthernTerritoryLegislation,
                        VictorianCourts, QueenslandCourts, SouthAustralianCourts, WesternAustralianCourts,
-                       TasmanianCourts, NorthernTerritoryCourts, AustralianCapitalTerritoryCourts, CommonwealthTribunals)
+                       TasmanianCourts, NorthernTerritoryCourts, AustralianCapitalTerritoryCourts, CommonwealthTribunals,
+                       CommonwealthCasesComplete, NewSouthWalesCasesComplete, VictoriaCasesComplete,
+                       QueenslandCasesComplete, SouthAustraliaCasesComplete, WesternAustraliaCasesComplete,
+                       TasmaniaCasesComplete, NorthernTerritoryCasesComplete,
+                       AustralianCapitalTerritoryCasesComplete, NorfolkIslandCasesComplete)
 
 # Initialise a map of the names of sources to their scrapers.
 SOURCES: dict[str, Scraper] = {
@@ -51,6 +55,16 @@ SOURCES: dict[str, Scraper] = {
     'northern_territory_courts' : NorthernTerritoryCourts,
     'australian_capital_territory_courts' : AustralianCapitalTerritoryCourts,
     'commonwealth_tribunals' : CommonwealthTribunals,
+    'commonwealth_austlii' : CommonwealthCasesComplete,
+    'new_south_wales_austlii' : NewSouthWalesCasesComplete,
+    'victoria_austlii' : VictoriaCasesComplete,
+    'queensland_austlii' : QueenslandCasesComplete,
+    'south_australia_austlii' : SouthAustraliaCasesComplete,
+    'western_australia_austlii' : WesternAustraliaCasesComplete,
+    'tasmania_austlii' : TasmaniaCasesComplete,
+    'northern_territory_austlii' : NorthernTerritoryCasesComplete,
+    'australian_capital_territory_austlii' : AustralianCapitalTerritoryCasesComplete,
+    'norfolk_island_austlii' : NorfolkIslandCasesComplete,
 }
 
 class Creator:

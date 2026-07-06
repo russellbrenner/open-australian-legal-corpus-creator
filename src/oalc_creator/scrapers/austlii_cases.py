@@ -1,4 +1,5 @@
 import re
+import os
 import html
 import asyncio
 
@@ -48,14 +49,22 @@ class AustliiCases(CffiImpersonateMixin, Scraper):
     JUR_PATH: str = None
     COURTS: tuple[str, ...] = ()
 
-    # When a court's database page advertises years separated by a gap larger than this,
-    # the contiguous-from-current block is treated as the court's coverage and earlier
-    # isolated year tokens (typically cited-case years in listing titles) are ignored.
-    MAX_YEAR_GAP = 3
+    # When True and COURTS is empty, the database codes for JUR_PATH are discovered
+    # from AustLII's master catalogue at run time (complete, self-maintaining coverage).
+    DISCOVER_CATALOGUE: bool = False
+
+    # Index-time dedup (opt-in). When True, index entries whose normalised neutral
+    # citation is in the held set (env AUSTLII_HELD_NC) are dropped, so the crawl
+    # fetches only not-yet-held documents. MUST only be enabled on scrapers with a
+    # FRESH source name: the base Creator purges any doc of a source that is absent
+    # from its index, so filtering an existing source's index would delete its corpus.
+    DEDUP_HELD: bool = False
+    HELD_NC_ENV = 'AUSTLII_HELD_NC'
 
     # An absolute floor below which no year is ever enumerated, as a courtesy guard
-    # against a malformed page producing an absurd range.
-    ABSOLUTE_FLOOR = 1900
+    # against a malformed page producing an absurd range. 1788 covers digitised
+    # historical law-report series (eg NSWLawRp from 1856, ArgusLawRp from 1893).
+    ABSOLUTE_FLOOR = 1788
 
     def __init__(self,
                  indices_refresh_interval: bool | timedelta = None,
@@ -93,61 +102,66 @@ class AustliiCases(CffiImpersonateMixin, Scraper):
         inscriptis_profile |= dict.fromkeys(('h1', 'h2', 'h3', 'h4', 'h5'), HtmlElement(display=Display.block, margin_before=1))
         self._inscriptis_config = CustomParserConfig(inscriptis_profile)
 
-    def _coverage_floor(self, years: set[int], current_year: int) -> int | None:
-        """Determine a court's earliest coverage year from the years advertised on its
-        database page, walking back from the current year while gaps stay within
-        ``MAX_YEAR_GAP`` so that isolated cited-case years are excluded."""
+    _NC_RE = re.compile(r'\[(\d{4})\]\s*([A-Za-z]+)\s*(\d+)')
+    _held_nc = None  # class-level cache of the held-NC dedup set
 
-        present = {y for y in years if self.ABSOLUTE_FLOOR <= y <= current_year}
+    @classmethod
+    def _load_held_nc(cls) -> frozenset:
+        """Load (once) the normalised held-NC set for index-time dedup."""
+        if AustliiCases._held_nc is None:
+            path = os.environ.get(cls.HELD_NC_ENV)
+            held = set()
+            if path and os.path.exists(path):
+                with open(path) as f:
+                    held = {ln.strip() for ln in f if ln.strip()}
+            AustliiCases._held_nc = frozenset(held)
+        return AustliiCases._held_nc
 
-        if not present:
-            return None
+    @classmethod
+    def _norm_nc(cls, title: str) -> str | None:
+        """Normalise a listing title's medium-neutral citation to '[YYYY] CODE N'."""
+        m = cls._NC_RE.search(title or '')
+        return f'[{m.group(1)}] {m.group(2).upper()} {m.group(3)}' if m else None
 
-        # Anchor at the most recent advertised year (a court may have published nothing
-        # in the calendar current year yet).
-        floor = anchor = max(present)
-
-        while True:
-            nxt = next((y for y in range(floor - 1, anchor - 100, -1) if y in present), None)
-
-            if nxt is None or (floor - nxt) > self.MAX_YEAR_GAP:
-                break
-
-            floor = nxt
-
-        return floor
+    async def _discover_courts(self) -> tuple[str, ...]:
+        """Discover every case-database code for JUR_PATH from AustLII's catalogue."""
+        cat = await self._get_text(Request(f'{self.BASE}/databases.html'))
+        codes = sorted(set(re.findall(rf'/cgi-bin/viewdb/au/cases/{self.JUR_PATH}/([A-Za-z0-9]+)/', cat)))
+        return tuple(codes)
 
     @log
     async def get_index_reqs(self) -> set[Request]:
-        """Enumerate one year-listing request per court per year of coverage.
+        """Enumerate one year-listing request per court per advertised year.
 
-        Each court's coverage span is discovered from its database landing page (the
-        years it advertises) rather than hard-coded, so the back catalogue is captured
-        in full without a brittle per-court year table. The base ``Creator`` removes any
-        document of this source that does not reappear in the index, so the index must
-        enumerate the entire back catalogue on every run.
+        Codes are the subclass ``COURTS`` or, if empty and ``DISCOVER_CATALOGUE`` is
+        set, the full AustLII catalogue for ``JUR_PATH``. Coverage years are every
+        distinct year token advertised on each database's landing page (not a
+        contiguous-from-current block: defunct/historical databases advertise their
+        real years across a >3yr gap the old ``_coverage_floor`` heuristic wrongly
+        truncated). Empty years yield an empty index at the cost of one cheap listing
+        fetch. The base ``Creator`` drops any document absent from the index, so the
+        index must enumerate the entire back catalogue on every run.
         """
 
         current_year = datetime.now().year
         reqs: set[Request] = set()
 
-        for code in self.COURTS:
+        courts = self.COURTS or (await self._discover_courts() if self.DISCOVER_CATALOGUE else ())
+
+        for code in courts:
             try:
                 landing = await self._get_text(f'{self.BASE}/cgi-bin/viewdb/au/cases/{self.JUR_PATH}/{code}/')
             except (ParseError, CurlError, asyncio.TimeoutError, OSError):
-                # A court whose landing page is unreachable is skipped; the next run retries.
+                # A database whose landing page is unreachable is skipped; next run retries.
                 continue
 
-            years = {int(y) for y in re.findall(r'\b(1[89]\d\d|20\d\d)\b', landing)}
-            floor = self._coverage_floor(years, current_year)
-
-            if floor is None:
-                continue
+            years = {int(y) for y in re.findall(r'\b(1[789]\d\d|20\d\d)\b', landing)}
+            years = {y for y in years if self.ABSOLUTE_FLOOR <= y <= current_year}
 
             if self._min_year:
-                floor = max(floor, self._min_year)
+                years = {y for y in years if y >= self._min_year}
 
-            for year in range(floor, current_year + 1):
+            for year in sorted(years):
                 reqs.add(Request(f'{self.BASE}/cgi-bin/viewdb/au/cases/{self.JUR_PATH}/{code}/{year}/'))
 
         return reqs
@@ -172,6 +186,13 @@ class AustliiCases(CffiImpersonateMixin, Scraper):
         # (party names, medium-neutral citation and, usually, the delivery date).
         for path, title in re.findall(rf'href="(/cgi-bin/viewdoc/au/cases/{jur_path}/{code}/{year}/\d+\.html)"[^>]*>([^<]+)</a>', resp):
             title = ' '.join(html.unescape(title).split())
+
+            # Index-time dedup (opt-in, fresh-source scrapers only): skip documents
+            # already held elsewhere in the corpus so only gaps are fetched.
+            if self.DEDUP_HELD:
+                held = self._load_held_nc()
+                if held and (nc := self._norm_nc(title)) is not None and nc in held:
+                    continue
 
             date = None
 
@@ -360,3 +381,78 @@ class CommonwealthTribunals(AustliiCases):
             for year in range(lo, (end or current_year) + 1):
                 reqs.add(Request(f'{self.BASE}/cgi-bin/viewdb/au/cases/{self.JUR_PATH}/{code}/{year}/'))
         return reqs
+
+
+class _AustliiComplete(AustliiCases):
+    """Full-catalogue AustLII crawl for a jurisdiction, index-deduped against the held
+    corpus so only not-yet-held documents are fetched. Uses a FRESH source name so the
+    base Creator's index-removal pass is safe (the corpus only ever holds gap docs,
+    which always reappear in the filtered index). Covers every case database AustLII
+    lists for JUR_PATH (courts, tribunals, historical law-report series)."""
+
+    DISCOVER_CATALOGUE = True
+    DEDUP_HELD = True
+    CRAWL_DELAY = 0.0  # owner-authorised crank; concurrency via the larger semaphore below
+
+    def __init__(self, *args, semaphore=None, **kwargs):
+        super().__init__(*args, semaphore=semaphore or asyncio.Semaphore(8), **kwargs)
+
+
+class CommonwealthCasesComplete(_AustliiComplete):
+    SOURCE = 'commonwealth_austlii'
+    JURISDICTION = 'commonwealth'
+    JUR_PATH = 'cth'
+
+
+class NewSouthWalesCasesComplete(_AustliiComplete):
+    SOURCE = 'new_south_wales_austlii'
+    JURISDICTION = 'new_south_wales'
+    JUR_PATH = 'nsw'
+
+
+class VictoriaCasesComplete(_AustliiComplete):
+    SOURCE = 'victoria_austlii'
+    JURISDICTION = 'victoria'
+    JUR_PATH = 'vic'
+
+
+class QueenslandCasesComplete(_AustliiComplete):
+    SOURCE = 'queensland_austlii'
+    JURISDICTION = 'queensland'
+    JUR_PATH = 'qld'
+
+
+class SouthAustraliaCasesComplete(_AustliiComplete):
+    SOURCE = 'south_australia_austlii'
+    JURISDICTION = 'south_australia'
+    JUR_PATH = 'sa'
+
+
+class WesternAustraliaCasesComplete(_AustliiComplete):
+    SOURCE = 'western_australia_austlii'
+    JURISDICTION = 'western_australia'
+    JUR_PATH = 'wa'
+
+
+class TasmaniaCasesComplete(_AustliiComplete):
+    SOURCE = 'tasmania_austlii'
+    JURISDICTION = 'tasmania'
+    JUR_PATH = 'tas'
+
+
+class NorthernTerritoryCasesComplete(_AustliiComplete):
+    SOURCE = 'northern_territory_austlii'
+    JURISDICTION = 'northern_territory'
+    JUR_PATH = 'nt'
+
+
+class AustralianCapitalTerritoryCasesComplete(_AustliiComplete):
+    SOURCE = 'australian_capital_territory_austlii'
+    JURISDICTION = 'australian_capital_territory'
+    JUR_PATH = 'act'
+
+
+class NorfolkIslandCasesComplete(_AustliiComplete):
+    SOURCE = 'norfolk_island_austlii'
+    JURISDICTION = 'norfolk_island'
+    JUR_PATH = 'nf'
