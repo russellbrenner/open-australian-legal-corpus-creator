@@ -318,7 +318,7 @@ class CommonwealthTribunals(AustliiCases):
     SOURCE = 'commonwealth_tribunals'
     JURISDICTION = 'commonwealth'
     JUR_PATH = 'cth'
-    CRAWL_DELAY = 1.0   # courteous per-request throttle for a fresh large AustLII crawl
+    CRAWL_DELAY = 0.25  # state-court crawls ran semaphore=2/no-delay through 239k docs; 0.25 is stricter
 
     # code -> (first year of decisions, last year | None for still-sitting). Ranges
     # are deliberately generous on the early bound; empty years yield no entries and
