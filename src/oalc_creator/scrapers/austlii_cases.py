@@ -397,8 +397,14 @@ class _AustliiComplete(AustliiCases):
     def __init__(self, *args, semaphore=None, **kwargs):
         # Gentler concurrency for the long 597k full-catalogue crawl: semaphore 8 tripped
         # Cloudflare challenge-bursts ~50k in that exhausted the retry budget and crashed
-        # the run. 5 keeps a courteous velocity; the supervisor auto-resumes on any stall.
+        # the run. 5 keeps a courteous velocity.
         super().__init__(*args, semaphore=semaphore or asyncio.Semaphore(5), **kwargs)
+        # Survive (don't crash on) sustained Cloudflare velocity blocks: keep retrying
+        # with a long backoff so a block becomes a low-CPU PAUSE that resumes when it
+        # clears, instead of exhausting the 15-min budget -> raise -> asyncio-shutdown
+        # deadlock -> hung zombie. 4h ceiling; up to 5-min spacing between retries.
+        self.stop_after_waiting = 4 * 60 * 60
+        self.max_wait = 5 * 60
 
 
 class CommonwealthCasesComplete(_AustliiComplete):
