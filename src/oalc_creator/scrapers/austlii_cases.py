@@ -395,7 +395,10 @@ class _AustliiComplete(AustliiCases):
     CRAWL_DELAY = 0.0  # owner-authorised crank; concurrency via the larger semaphore below
 
     def __init__(self, *args, semaphore=None, **kwargs):
-        super().__init__(*args, semaphore=semaphore or asyncio.Semaphore(8), **kwargs)
+        # Gentler concurrency for the long 597k full-catalogue crawl: semaphore 8 tripped
+        # Cloudflare challenge-bursts ~50k in that exhausted the retry budget and crashed
+        # the run. 5 keeps a courteous velocity; the supervisor auto-resumes on any stall.
+        super().__init__(*args, semaphore=semaphore or asyncio.Semaphore(5), **kwargs)
 
 
 class CommonwealthCasesComplete(_AustliiComplete):
