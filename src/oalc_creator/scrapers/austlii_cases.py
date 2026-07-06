@@ -318,7 +318,12 @@ class CommonwealthTribunals(AustliiCases):
     SOURCE = 'commonwealth_tribunals'
     JURISDICTION = 'commonwealth'
     JUR_PATH = 'cth'
-    CRAWL_DELAY = 0.25  # state-court crawls ran semaphore=2/no-delay through 239k docs; 0.25 is stricter
+    CRAWL_DELAY = 0.0   # owner-authorised crank; concurrency handled via a larger semaphore below
+
+    def __init__(self, *args, semaphore=None, **kwargs):
+        # Owner-authorised higher concurrency for this fresh large crawl (default base is 2).
+        # AustLII rate-limits by velocity; monitor for 429/403 and dial back if they appear.
+        super().__init__(*args, semaphore=semaphore or asyncio.Semaphore(8), **kwargs)
 
     # code -> (first year of decisions, last year | None for still-sitting). Ranges
     # are deliberately generous on the early bound; empty years yield no entries and
