@@ -300,3 +300,58 @@ class AustralianCapitalTerritoryCourts(AustliiCases):
     JURISDICTION = 'australian_capital_territory'
     JUR_PATH = 'act'
     COURTS = ('ACTSC', 'ACTCA', 'ACTSCFC', 'ACTMC', 'ACAT', 'ACTAAT')
+
+
+class CommonwealthTribunals(AustliiCases):
+    """Commonwealth tribunal decisions on AustLII (/au/cases/cth/<CODE>/).
+
+    These adjudicative tribunals are absent from the corpus (the family-law
+    ``Austlii`` scraper covers only cth courts). Enterprise-agreement approvals
+    (FWCA) are intentionally excluded as non-adjudicative bulk. Reuses the
+    AustliiCases fetch/parse machinery, but overrides year discovery with an
+    explicit (start, end) range per database: the base's landing-page
+    ``_coverage_floor`` heuristic under-enumerates defunct tribunals (FWA/SCTA)
+    whose data years sit behind a >3yr gap from spurious recent year tokens on
+    the landing page. AustLII ToS: non-redistributable.
+    """
+
+    SOURCE = 'commonwealth_tribunals'
+    JURISDICTION = 'commonwealth'
+    JUR_PATH = 'cth'
+    CRAWL_DELAY = 1.0   # courteous per-request throttle for a fresh large AustLII crawl
+
+    # code -> (first year of decisions, last year | None for still-sitting). Ranges
+    # are deliberately generous on the early bound; empty years yield no entries and
+    # cost only one index fetch. Excluded: FWCA (non-adjudicative bulk); AFPDT/NST/
+    # ATPT (no viewdb at /au/cases/cth/<code>/ — HTTP 500).
+    COURT_YEARS: dict[str, tuple[int, int | None]] = {
+        'AATA'  : (1976, 2024),  # Administrative Appeals Tribunal (→ ART 2024)
+        'ARTA'  : (2024, None),  # Administrative Review Tribunal (AAT successor)
+        'FWC'   : (2009, None),  # Fair Work Commission
+        'FWCFB' : (2009, None),  # FWC Full Bench
+        'FWCD'  : (2012, None),  # FWC General Manager & Delegates
+        'FWA'   : (2009, 2012),  # Fair Work Australia (predecessor)
+        'FWAFB' : (2009, 2012),  # Fair Work Australia Full Bench
+        'FWAA'  : (2009, 2012),  # Fair Work Australia (agreements)
+        'NNTTA' : (1994, None),  # National Native Title Tribunal
+        'ATMO'  : (1982, None),  # Trade Marks Office
+        'APO'   : (1981, None),  # Patent Office
+        'ACompT': (1976, None),  # Australian Competition Tribunal
+        'ACopyT': (1969, None),  # Copyright Tribunal
+        'SCTA'  : (1994, 2021),  # Superannuation Complaints Tribunal (defunct 2021)
+        'ADFDAT': (1985, None),  # Defence Force Discipline Appeal Tribunal
+    }
+    COURTS = tuple(COURT_YEARS)
+
+    async def get_index_reqs(self) -> set:
+        # Explicit ranges (no fragile landing-page year discovery). One year-listing
+        # request per court per year; the base Creator drops docs absent from the index.
+        from ..data import Request
+        from datetime import datetime
+        current_year = datetime.now().year
+        reqs = set()
+        for code, (start, end) in self.COURT_YEARS.items():
+            lo = max(start, self._min_year) if self._min_year else start
+            for year in range(lo, (end or current_year) + 1):
+                reqs.add(Request(f'{self.BASE}/cgi-bin/viewdb/au/cases/{self.JUR_PATH}/{code}/{year}/'))
+        return reqs

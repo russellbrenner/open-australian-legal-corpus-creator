@@ -13,4 +13,4 @@ from .federal_register_of_legislation import FederalRegisterOfLegislation
 from .northern_territory_legislation import NorthernTerritoryLegislation
 from .austlii_cases import (AustliiCases, VictorianCourts, QueenslandCourts, SouthAustralianCourts,
                             WesternAustralianCourts, TasmanianCourts, NorthernTerritoryCourts,
-                            AustralianCapitalTerritoryCourts)
+                            AustralianCapitalTerritoryCourts, CommonwealthTribunals)
