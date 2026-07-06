@@ -30,7 +30,8 @@ from .scrapers import (Austlii, ActLegislation, NswCaselaw, NswLegislation, High
                        CommonwealthCasesComplete, NewSouthWalesCasesComplete, VictoriaCasesComplete,
                        QueenslandCasesComplete, SouthAustraliaCasesComplete, WesternAustraliaCasesComplete,
                        TasmaniaCasesComplete, NorthernTerritoryCasesComplete,
-                       AustralianCapitalTerritoryCasesComplete, NorfolkIslandCasesComplete)
+                       AustralianCapitalTerritoryCasesComplete, NorfolkIslandCasesComplete,
+                       VictorianLegislationAustlii, ActLegislationAustlii, NorthernTerritoryLegislationAustlii)
 
 # Initialise a map of the names of sources to their scrapers.
 SOURCES: dict[str, Scraper] = {
@@ -65,6 +66,9 @@ SOURCES: dict[str, Scraper] = {
     'northern_territory_austlii' : NorthernTerritoryCasesComplete,
     'australian_capital_territory_austlii' : AustralianCapitalTerritoryCasesComplete,
     'norfolk_island_austlii' : NorfolkIslandCasesComplete,
+    'victorian_legislation_austlii' : VictorianLegislationAustlii,
+    'act_legislation_austlii' : ActLegislationAustlii,
+    'northern_territory_legislation_austlii' : NorthernTerritoryLegislationAustlii,
 }
 
 class Creator:

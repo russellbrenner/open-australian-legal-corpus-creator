@@ -465,3 +465,73 @@ class NorfolkIslandCasesComplete(_AustliiComplete):
     SOURCE = 'norfolk_island_austlii'
     JURISDICTION = 'norfolk_island'
     JUR_PATH = 'nf'
+
+
+class AustliiLegislation(AustliiCases):
+    """AustLII consolidated SECONDARY legislation (/au/legis/<JUR_PATH>/consol_reg/).
+    Reuses the curl_cffi fetch + <article> inscriptis parse of AustliiCases; overrides
+    index enumeration to walk the alphabetical ``toc-<LETTER>.html`` pages. Closes the
+    vic/act/nt subordinate-legislation gap the official registers could not (VIC/ACT
+    registers stall a plain-aiohttp fetch; NT register host is unreachable). AustLII
+    ToS: non-redistributable."""
+
+    KIND = 'consol_reg'                 # subordinate/secondary legislation
+    LEG_TYPE = 'secondary_legislation'
+    DISCOVER_CATALOGUE = False
+    DEDUP_HELD = False
+    CRAWL_DELAY = 0.0
+
+    def __init__(self, *args, semaphore=None, **kwargs):
+        # Low concurrency: this runs alongside the throttled case crawl on the same host.
+        super().__init__(*args, semaphore=semaphore or asyncio.Semaphore(3), **kwargs)
+        self._type = self.LEG_TYPE      # override the AustliiCases 'decision' default
+        self.stop_after_waiting = 4 * 60 * 60
+        self.max_wait = 5 * 60
+
+    @log
+    async def get_index_reqs(self) -> set[Request]:
+        import string
+        return {
+            Request(f'{self.BASE}/cgi-bin/viewdb/au/legis/{self.JUR_PATH}/{self.KIND}/toc-{L}.html')
+            for L in string.ascii_uppercase
+        }
+
+    @log
+    async def get_index(self, req: Request) -> set[Entry]:
+        resp = await self._get_text(req)
+        entries = set()
+        # Each in-force instrument on a toc page links to its consolidated text.
+        for name, title in re.findall(
+                rf'href="/cgi-bin/view(?:db|doc)/au/legis/{self.JUR_PATH}/{self.KIND}/([a-z0-9_]+)/?"[^>]*>([^<]+)</a>', resp):
+            title = ' '.join(html.unescape(title).split())
+            if not title:
+                continue
+            path = f'/cgi-bin/viewdoc/au/legis/{self.JUR_PATH}/{self.KIND}/{name}/'
+            entries.add(Entry(
+                request=Request(f'{self.BASE}{path}'),
+                version_id=f'{self.source}:{self.JUR_PATH}/{self.KIND}/{name}',
+                source=self.source,
+                type=self._type,
+                jurisdiction=self._jurisdiction,
+                date=None,
+                title=title,
+            ))
+        return entries
+
+
+class VictorianLegislationAustlii(AustliiLegislation):
+    SOURCE = 'victorian_legislation_austlii'
+    JURISDICTION = 'victoria'
+    JUR_PATH = 'vic'
+
+
+class ActLegislationAustlii(AustliiLegislation):
+    SOURCE = 'act_legislation_austlii'
+    JURISDICTION = 'australian_capital_territory'
+    JUR_PATH = 'act'
+
+
+class NorthernTerritoryLegislationAustlii(AustliiLegislation):
+    SOURCE = 'northern_territory_legislation_austlii'
+    JURISDICTION = 'northern_territory'
+    JUR_PATH = 'nt'

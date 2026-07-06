@@ -17,4 +17,5 @@ from .austlii_cases import (AustliiCases, VictorianCourts, QueenslandCourts, Sou
                             CommonwealthCasesComplete, NewSouthWalesCasesComplete, VictoriaCasesComplete,
                             QueenslandCasesComplete, SouthAustraliaCasesComplete, WesternAustraliaCasesComplete,
                             TasmaniaCasesComplete, NorthernTerritoryCasesComplete,
-                            AustralianCapitalTerritoryCasesComplete, NorfolkIslandCasesComplete)
+                            AustralianCapitalTerritoryCasesComplete, NorfolkIslandCasesComplete,
+                            VictorianLegislationAustlii, ActLegislationAustlii, NorthernTerritoryLegislationAustlii)
