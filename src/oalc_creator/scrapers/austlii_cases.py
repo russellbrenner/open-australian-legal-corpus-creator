@@ -467,6 +467,67 @@ class NorfolkIslandCasesComplete(_AustliiComplete):
     JUR_PATH = 'nf'
 
 
+# --- Targeted top-up: case databases the DISCOVER_CATALOGUE full crawl skipped because
+# --- their landing page transiently failed to fetch during the Cloudflare-heavy run
+# --- (get_index_reqs skips a DB whose landing errors; the plateau never retried them).
+# --- COURTS below are databases with ZERO held documents anywhere in the gold-final
+# --- census. Explicit COURTS (DISCOVER_CATALOGUE stays False); SOURCE mirrors the
+# --- jurisdiction's austlii source so top-up rows merge cleanly into austlii_complete.
+class CommonwealthCasesTopup(AustliiCases):
+    SOURCE = 'commonwealth_austlii'
+    JURISDICTION = 'commonwealth'
+    JUR_PATH = 'cth'
+    COURTS = ('FedCFamC2G',)
+
+
+class NewSouthWalesCasesTopup(AustliiCases):
+    SOURCE = 'new_south_wales_austlii'
+    JURISDICTION = 'new_south_wales'
+    JUR_PATH = 'nsw'
+    COURTS = ('AUESFA', 'AUESFAAC', 'csat')
+
+
+class NorthernTerritoryCasesTopup(AustliiCases):
+    SOURCE = 'northern_territory_austlii'
+    JURISDICTION = 'northern_territory'
+    JUR_PATH = 'nt'
+    COURTS = ('NTHPRT',)
+
+
+class QueenslandCasesTopup(AustliiCases):
+    SOURCE = 'queensland_austlii'
+    JURISDICTION = 'queensland'
+    JUR_PATH = 'qld'
+    COURTS = ('QNT',)
+
+
+class SouthAustraliaCasesTopup(AustliiCases):
+    SOURCE = 'south_australia_austlii'
+    JURISDICTION = 'south_australia'
+    JUR_PATH = 'sa'
+    COURTS = ('SALawRp', 'SACHOSB', 'SACHOSBCP', 'SADB', 'SADPCT', 'SAMB', 'SAPDB', 'SAPHB', 'SAPSB', 'SAPSBCP')
+
+
+class TasmaniaCasesTopup(AustliiCases):
+    SOURCE = 'tasmania_austlii'
+    JURISDICTION = 'tasmania'
+    JUR_PATH = 'tas'
+    COURTS = ('TASStRp',)
+
+
+class VictoriaCasesTopup(AustliiCases):
+    SOURCE = 'victoria_austlii'
+    JURISDICTION = 'victoria'
+    JUR_PATH = 'vic'
+    COURTS = ('VDPB', 'VMPB', 'VMPBPSP', 'VPSRB', 'VPYRB')
+
+
+class WesternAustraliaCasesTopup(AustliiCases):
+    SOURCE = 'western_australia_austlii'
+    JURISDICTION = 'western_australia'
+    JUR_PATH = 'wa'
+    COURTS = ('WAMW', 'WAWM')
+
 class AustliiLegislation(AustliiCases):
     """AustLII consolidated SECONDARY legislation (/au/legis/<JUR_PATH>/consol_reg/).
     Reuses the curl_cffi fetch + <article> inscriptis parse of AustliiCases; overrides

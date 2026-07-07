@@ -31,6 +31,9 @@ from .scrapers import (Austlii, ActLegislation, NswCaselaw, NswLegislation, High
                        QueenslandCasesComplete, SouthAustraliaCasesComplete, WesternAustraliaCasesComplete,
                        TasmaniaCasesComplete, NorthernTerritoryCasesComplete,
                        AustralianCapitalTerritoryCasesComplete, NorfolkIslandCasesComplete,
+                       CommonwealthCasesTopup, NewSouthWalesCasesTopup, NorthernTerritoryCasesTopup,
+                       QueenslandCasesTopup, SouthAustraliaCasesTopup, TasmaniaCasesTopup,
+                       VictoriaCasesTopup, WesternAustraliaCasesTopup,
                        VictorianLegislationAustlii, ActLegislationAustlii, NorthernTerritoryLegislationAustlii)
 
 # Initialise a map of the names of sources to their scrapers.
@@ -69,6 +72,14 @@ SOURCES: dict[str, Scraper] = {
     'victorian_legislation_austlii' : VictorianLegislationAustlii,
     'act_legislation_austlii' : ActLegislationAustlii,
     'northern_territory_legislation_austlii' : NorthernTerritoryLegislationAustlii,
+    'commonwealth_austlii_topup' : CommonwealthCasesTopup,
+    'new_south_wales_austlii_topup' : NewSouthWalesCasesTopup,
+    'northern_territory_austlii_topup' : NorthernTerritoryCasesTopup,
+    'queensland_austlii_topup' : QueenslandCasesTopup,
+    'south_australia_austlii_topup' : SouthAustraliaCasesTopup,
+    'tasmania_austlii_topup' : TasmaniaCasesTopup,
+    'victoria_austlii_topup' : VictoriaCasesTopup,
+    'western_australia_austlii_topup' : WesternAustraliaCasesTopup,
 }
 
 class Creator:
